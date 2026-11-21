@@ -6,6 +6,7 @@ import {
   validateUpload,
   type ValidationResult,
 } from "@/services/uploadService";
+import { createProject, type Project } from "@/services/projectService";
 
 const categories = ["Gaming", "Podcasts", "Cricket", "Other Sports", "Other"];
 
@@ -15,6 +16,7 @@ export default function NewProjectPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
+  const [createdProject, setCreatedProject] = useState<Project | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,15 +27,20 @@ export default function NewProjectPage() {
 
     setIsSubmitting(true);
     setResult(null);
+    setCreatedProject(null);
     try {
-      const response = await validateUpload(videoFile);
-      setResult(response);
-      console.log("New project:", {
+      const check = await validateUpload(videoFile);
+      setResult(check);
+      if (!check.valid) return;
+
+      const project = await createProject({
         name,
         category,
-        file: videoFile.name,
-        response,
+        video_filename: videoFile.name,
+        video_size_bytes: videoFile.size,
       });
+      setCreatedProject(project);
+      console.log("Project created:", project);
     } catch {
       setResult({
         valid: false,
@@ -102,6 +109,12 @@ export default function NewProjectPage() {
             {result.valid
               ? `Server accepted: ${result.filename} (${result.size_bytes?.toLocaleString()} bytes)`
               : `Server rejected: ${result.reason}`}
+          </p>
+        )}
+
+        {createdProject && (
+          <p className="text-sm text-green-400">
+            Project created: {createdProject.name} (ID: {createdProject.id})
           </p>
         )}
       </form>
