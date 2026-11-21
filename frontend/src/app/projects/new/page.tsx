@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import VideoDropzone from "@/components/upload/VideoDropzone";
 
 const categories = ["Gaming", "Podcasts", "Cricket", "Other Sports", "Other"];
 
 export default function NewProjectPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories[0]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("New project:", { name, category });
+    console.log("New project:", { name, category, file: videoFile?.name ?? null });
   }
 
   return (
@@ -47,6 +49,11 @@ export default function NewProjectPage() {
             ))}
           </select>
         </label>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-sm text-neutral-300">Video</span>
+          <VideoDropzone onFileSelected={setVideoFile} />
+        </div>
 
         <button
           type="submit"
