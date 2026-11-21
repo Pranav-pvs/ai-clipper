@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import VideoDropzone from "@/components/upload/VideoDropzone";
+import {
+  validateUpload,
+  type ValidationResult,
+} from "@/services/uploadService";
 
 const categories = ["Gaming", "Podcasts", "Cricket", "Other Sports", "Other"];
 
@@ -9,10 +13,35 @@ export default function NewProjectPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories[0]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<ValidationResult | null>(null);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log("New project:", { name, category, file: videoFile?.name ?? null });
+    if (!videoFile) {
+      setResult({ valid: false, reason: "Please choose a video first." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setResult(null);
+    try {
+      const response = await validateUpload(videoFile);
+      setResult(response);
+      console.log("New project:", {
+        name,
+        category,
+        file: videoFile.name,
+        response,
+      });
+    } catch {
+      setResult({
+        valid: false,
+        reason: "Could not reach the server. Is the backend running?",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -22,7 +51,10 @@ export default function NewProjectPage() {
         Give your project a name and choose a content category.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex max-w-md flex-col gap-6">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-8 flex max-w-md flex-col gap-6"
+      >
         <label className="flex flex-col gap-2">
           <span className="text-sm text-neutral-300">Project name</span>
           <input
@@ -57,10 +89,21 @@ export default function NewProjectPage() {
 
         <button
           type="submit"
-          className="rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500"
+          disabled={isSubmitting}
+          className="rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500 disabled:opacity-50"
         >
-          Create project
+          {isSubmitting ? "Checking video..." : "Create project"}
         </button>
+
+        {result && (
+          <p
+            className={`text-sm ${result.valid ? "text-green-400" : "text-red-400"}`}
+          >
+            {result.valid
+              ? `Server accepted: ${result.filename} (${result.size_bytes?.toLocaleString()} bytes)`
+              : `Server rejected: ${result.reason}`}
+          </p>
+        )}
       </form>
     </main>
   );
