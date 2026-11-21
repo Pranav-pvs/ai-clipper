@@ -6,7 +6,11 @@ import {
   validateUpload,
   type ValidationResult,
 } from "@/services/uploadService";
-import { createProject, type Project } from "@/services/projectService";
+import {
+  createProject,
+  uploadProjectVideo,
+  type Project,
+} from "@/services/projectService";
 
 const categories = ["Gaming", "Podcasts", "Cricket", "Other Sports", "Other"];
 
@@ -33,19 +37,18 @@ export default function NewProjectPage() {
       setResult(check);
       if (!check.valid) return;
 
-      const project = await createProject({
-        name,
-        category,
-        video_filename: videoFile.name,
-        video_size_bytes: videoFile.size,
-      });
-      setCreatedProject(project);
-      console.log("Project created:", project);
-    } catch {
-      setResult({
-        valid: false,
-        reason: "Could not reach the server. Is the backend running?",
-      });
+      const project = await createProject({ name, category });
+      const withVideo = await uploadProjectVideo(project.id, videoFile);
+      setCreatedProject(withVideo);
+      console.log("Project created:", withVideo);
+    } catch (err) {
+      const message =
+        err instanceof TypeError
+          ? "Could not reach the server. Is the backend running?"
+          : err instanceof Error
+            ? err.message
+            : "Something went wrong.";
+      setResult({ valid: false, reason: message });
     } finally {
       setIsSubmitting(false);
     }

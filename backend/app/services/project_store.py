@@ -17,6 +17,17 @@ def get_project(project_id: str) -> Project | None:
     return _projects.get(project_id)
 
 
+def update_video_metadata(project_id: str, filename: str, size_bytes: int) -> Project | None:
+    project = _projects.get(project_id)
+    if project is None:
+        return None
+    updated = project.model_copy(
+        update={"video_filename": filename, "video_size_bytes": size_bytes}
+    )
+    _projects[project_id] = updated
+    return updated
+
+
 def clear_projects() -> None:
     """Used by tests to reset state."""
     _projects.clear()

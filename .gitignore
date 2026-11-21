@@ -22,3 +22,6 @@ Thumbs.db
 # Logs and temp files
 *.log
 tmp/
+
+# Uploaded videos (temporary, never commit)
+uploads_tmp/
