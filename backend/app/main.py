@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 
+from app.routes.uploads import router as uploads_router
+
 app = FastAPI(title="AI Clipper API", version="0.1.0")
+
+app.include_router(uploads_router)
 
 
 @app.get("/health")
