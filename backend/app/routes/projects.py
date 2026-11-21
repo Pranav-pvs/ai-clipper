@@ -1,8 +1,19 @@
+import tempfile
+from pathlib import Path
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from app.core import config
 from app.routes.uploads import check_video_type
-from app.schemas.project import ALLOWED_CATEGORIES, Project, ProjectCreate
+from app.schemas.project import (
+    ALLOWED_CATEGORIES,
+    Project,
+    ProjectCreate,
+    TranscriptSegmentOut,
+)
 from app.services import project_store, video_store
+from app.services.audio_extractor import AudioExtractionError, extract_audio
+from app.services.transcription import TranscriptionError, transcribe_audio
 from app.services.video_storage import VideoStorageError, save_video
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -43,7 +54,43 @@ async def upload_project_video(project_id: str, file: UploadFile = File(...)) ->
         previous.unlink(missing_ok=True)
 
     video_store.save_video_path(project_id, path)
-    updated = project_store.update_video_metadata(
+    return project_store.update_video_metadata(
         project_id, file.filename or path.name, path.stat().st_size
     )
-    return updated
+
+
+@router.post("/{project_id}/transcribe", response_model=Project)
+def transcribe_project(project_id: str) -> Project:
+    if project_store.get_project(project_id) is None:
+        raise HTTPException(status_code=404, detail="Project not found.")
+
+    video_path = video_store.get_video_path(project_id)
+    if video_path is None:
+        raise HTTPException(
+            status_code=409,
+            detail="No video found for this project. Upload a video first, or re-upload if the server restarted.",
+        )
+
+    # The temporary folder and its audio file are deleted when this block ends
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            audio_path = extract_audio(video_path, Path(temp_dir))
+        except AudioExtractionError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        if audio_path.stat().st_size > config.GROQ_MAX_AUDIO_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="Audio is too long for transcription. Use a shorter clip.",
+            )
+
+        try:
+            transcript = transcribe_audio(audio_path)
+        except TranscriptionError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    segments = [
+        TranscriptSegmentOut(start=s.start, end=s.end, text=s.text)
+        for s in transcript.segments
+    ]
+    return project_store.update_transcript(project_id, transcript.text, segments)

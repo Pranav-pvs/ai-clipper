@@ -10,5 +10,13 @@ class ProjectCreate(BaseModel):
     video_size_bytes: int | None = Field(default=None, ge=0)
 
 
+class TranscriptSegmentOut(BaseModel):
+    start: float
+    end: float
+    text: str
+
+
 class Project(ProjectCreate):
     id: str
+    transcript_text: str | None = None
+    transcript_segments: list[TranscriptSegmentOut] = Field(default_factory=list)

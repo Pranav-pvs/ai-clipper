@@ -1,6 +1,6 @@
 import uuid
 
-from app.schemas.project import Project, ProjectCreate
+from app.schemas.project import Project, ProjectCreate, TranscriptSegmentOut
 
 # In-memory storage. Data resets when the server restarts.
 # Replaced by Supabase in Phase 2.
@@ -23,6 +23,19 @@ def update_video_metadata(project_id: str, filename: str, size_bytes: int) -> Pr
         return None
     updated = project.model_copy(
         update={"video_filename": filename, "video_size_bytes": size_bytes}
+    )
+    _projects[project_id] = updated
+    return updated
+
+
+def update_transcript(
+    project_id: str, text: str, segments: list[TranscriptSegmentOut]
+) -> Project | None:
+    project = _projects.get(project_id)
+    if project is None:
+        return None
+    updated = project.model_copy(
+        update={"transcript_text": text, "transcript_segments": segments}
     )
     _projects[project_id] = updated
     return updated
