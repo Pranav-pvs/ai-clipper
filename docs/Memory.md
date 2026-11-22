@@ -38,3 +38,12 @@ Purpose: lets work resume across sessions and across AI tools (Claude, Codex, et
 - What remains incomplete:
 - Next step:
 ```
+
+### Phase 2 progress (transcription)
+- FFmpeg 9.0.1 installed; audio extraction to 16 kHz mono FLAC verified on real speech.
+- Groq API used for transcription (`whisper-large-v3-turbo`), chosen because the laptop (i3-1215U, 8 GB RAM) cannot run Whisper locally. Key stored in `backend/.env`, ignored by Git.
+- Uploaded videos saved to `backend/uploads_tmp/` (ignored by Git). Links are in memory and reset on restart.
+- Projects and transcripts are stored in memory. Supabase is planned but not yet connected.
+- `POST /projects/{id}/transcribe` verified end to end with a 59-second speech clip.
+- Tests: 32 backend tests passing.
+- Next: Gemini highlight suggestions, or Supabase migration (decision pending).
