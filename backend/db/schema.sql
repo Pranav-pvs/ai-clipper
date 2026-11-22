@@ -12,3 +12,5 @@ create table projects (
 
 -- Block public access through the anon key. The backend uses the service key, which bypasses this.
 alter table projects enable row level security;
+
+grant select, insert, update, delete on public.projects to service_role;
